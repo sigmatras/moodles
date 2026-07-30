@@ -38,5 +38,7 @@
   "effect.minecraft.fire_resistance.description": "Prevents the affected entity from taking all fire/lava damage",
   "effect.minecraft.hero_of_the_village.description": "Gives discounts on trades with villagers, and makes villagers throw items at the player depending on their profession. You like farming totems and discounts, don't you?",
   "effect.minecraft.regeneration.description": "Restores health over time. Your wounds heal right before our eyes!",
-  "effect.minecraft.jump_boost.description": "Increases jump height and reduces fall damage. [insert random bunny joke here]"
+  "effect.minecraft.jump_boost.description": "Increases jump height and reduces fall damage. [insert random bunny joke here]",
+  "moodles.configuration.displayMode": "moodles mode",
+  "moodles.configuration.displayMode.tooltip": "POTENCY - effects that don't scale with potency have square frames, vice versa.\n\nCAS:UNKNOWN - square frames for positive, circle for neutral and negative."
 }
