@@ -9,7 +9,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffectInstance;
 
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,6 +37,8 @@ public class hud_renderer {
         anim.updateActiveEffects(rawEffects, now);
         texture_manager.ensureLoaded(mc);
 
+        config.DisplayMode displayMode = config.DISPLAY_MODE.get();
+
         List<MobEffectInstance> sortedEffects = rawEffects.stream()
                 .collect(Collectors.toMap(
                         e -> e.getEffect().value(),
@@ -46,7 +47,18 @@ public class hud_renderer {
                 ))
                 .values()
                 .stream()
-                .sorted(Comparator.comparing(e -> registry.getMoodleDef(e).scalesWithPotency()))
+                .sorted((e1, e2) -> {
+                    if (displayMode == config.DisplayMode.CAS_UNKNOWN) {
+                        MoodleDef d1 = registry.getMoodleDef(e1);
+                        MoodleDef d2 = registry.getMoodleDef(e2);
+                        return Integer.compare(getOriginalOrder(d1.type()), getOriginalOrder(d2.type()));
+                    } else {
+                        return Boolean.compare(
+                                registry.getMoodleDef(e1).scalesWithPotency(),
+                                registry.getMoodleDef(e2).scalesWithPotency()
+                        );
+                    }
+                })
                 .toList();
 
         double guiScale = mc.getWindow().getGuiScale();
@@ -97,23 +109,54 @@ public class hud_renderer {
             MoodleDef def = registry.getMoodleDef(effect);
 
             int frameIndex = 0;
+            int foregroundIndex = 0;
+            ResourceLocation frameTex = texture_manager.ORIGINAL_LOCATION;
 
-            if (def.scalesWithPotency()) {
-                int amp = effect.getAmplifier();
-                if (amp <= 0) {
-                    frameIndex = 38;
-                } else if (amp == 1) {
-                    frameIndex = 39;
-                } else if (amp == 2) {
-                    frameIndex = 40;
-                } else {
-                    frameIndex = 41;
+            if (displayMode == config.DisplayMode.CAS_UNKNOWN) {
+                switch (def.type()) {
+                    case POSITIVE -> {
+                        frameIndex = 43;
+                        foregroundIndex = 48;
+                        frameTex = texture_manager.ORIGINAL_LOCATION;
+                    }
+                    case NEGATIVE -> {
+                        frameIndex = getPotencyFrameIndex(effect.getAmplifier());
+                        foregroundIndex = 47;
+                        frameTex = texture_manager.ORIGINAL_LOCATION;
+                    }
+                    case NEUTRAL -> {
+                        frameIndex = getPotencyFrameIndex(effect.getAmplifier());
+                        foregroundIndex = 47;
+                        frameTex = texture_manager.HUE_SHIFTED_40_LOCATION;
+                    }
                 }
             } else {
-                switch (def.type()) {
-                    case NEGATIVE -> frameIndex = 42;
-                    case POSITIVE -> frameIndex = 43;
-                    case NEUTRAL  -> frameIndex = 44;
+                if (def.scalesWithPotency()) {
+                    frameIndex = getPotencyFrameIndex(effect.getAmplifier());
+                    foregroundIndex = 47;
+
+                    if (effect.getAmplifier() > 0) {
+                        if (def.type() == EffectType.POSITIVE) {
+                            frameTex = texture_manager.HUE_SHIFTED_90_LOCATION;
+                        } else if (def.type() == EffectType.NEUTRAL) {
+                            frameTex = texture_manager.HUE_SHIFTED_40_LOCATION;
+                        }
+                    }
+                } else {
+                    switch (def.type()) {
+                        case POSITIVE -> {
+                            frameIndex = 43;
+                            foregroundIndex = 48;
+                        }
+                        case NEGATIVE -> {
+                            frameIndex = 42;
+                            foregroundIndex = 48;
+                        }
+                        case NEUTRAL -> {
+                            frameIndex = 44;
+                            foregroundIndex = 48;
+                        }
+                    }
                 }
             }
 
@@ -129,7 +172,7 @@ public class hud_renderer {
             anim.AnimState anim = com.moodles.anim.getAnimState(effect, displaySize, now);
 
             float wiggleOffset = 0.0f;
-            if (def.scalesWithPotency() && def.type() != EffectType.NEUTRAL && effect.getAmplifier() >= 4) {
+            if (displayMode == config.DisplayMode.POTENCY && def.scalesWithPotency() && def.type() != EffectType.NEUTRAL && effect.getAmplifier() >= 4) {
                 wiggleOffset = (float) Math.sin((now % 1500L) / 1500.0 * Math.PI * 2.0) * 1.5f;
             }
 
@@ -142,15 +185,6 @@ public class hud_renderer {
             poseStack.translate(-centerX, -centerY, 0.0f);
 
             guiGraphics.setColor(1.0f, 1.0f, 1.0f, anim.alpha());
-
-            ResourceLocation frameTex = texture_manager.ORIGINAL_LOCATION;
-            if (def.scalesWithPotency() && effect.getAmplifier() > 0) {
-                if (def.type() == EffectType.POSITIVE) {
-                    frameTex = texture_manager.HUE_SHIFTED_90_LOCATION;
-                } else if (def.type() == EffectType.NEUTRAL) {
-                    frameTex = texture_manager.HUE_SHIFTED_40_LOCATION;
-                }
-            }
 
             guiGraphics.blit(
                     frameTex,
@@ -170,7 +204,6 @@ public class hud_renderer {
                     texWidth, texHeight
             );
 
-            int foregroundIndex = def.scalesWithPotency() ? 47 : 48;
             guiGraphics.blit(
                     frameTex,
                     x, y,
@@ -200,5 +233,20 @@ public class hud_renderer {
         if (hoveredEffect != null) {
             tooltip.render(guiGraphics, hoveredEffect, (int) mouseX, (int) mouseY, mc.font);
         }
+    }
+
+    private static int getPotencyFrameIndex(int amplifier) {
+        if (amplifier <= 0) return 38;
+        if (amplifier == 1) return 39;
+        if (amplifier == 2) return 40;
+        return 41;
+    }
+
+    private static int getOriginalOrder(EffectType type) {
+        return switch (type) {
+            case POSITIVE -> 0;
+            case NEUTRAL  -> 1;
+            case NEGATIVE -> 2;
+        };
     }
 }

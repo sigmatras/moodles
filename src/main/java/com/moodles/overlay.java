@@ -26,7 +26,7 @@ public class overlay {
         Holder<MobEffect> holder = effect.getEffect();
         int amplifier = effect.getAmplifier();
 
-        if (!def.scalesWithPotency() || def.type() == EffectType.NEUTRAL || amplifier < 4) {
+        if (config.DISPLAY_MODE.get() != config.DisplayMode.POTENCY || !def.scalesWithPotency() || def.type() == EffectType.NEUTRAL || amplifier < 4) {
             OVERLAY_START_TIMES.remove(holder);
             return;
         }
@@ -68,7 +68,6 @@ public class overlay {
                 TEX_WIDTH, TEX_HEIGHT
         );
         guiGraphics.setColor(1.0f, 1.0f, 1.0f, 1.0f);
-
     }
 
     private static double easeExpoOut(double x) {
