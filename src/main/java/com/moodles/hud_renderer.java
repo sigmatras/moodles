@@ -2,10 +2,11 @@ package com.moodles;
 
 import com.moodles.registry.EffectType;
 import com.moodles.registry.MoodleDef;
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.ARGB;
 import net.minecraft.world.effect.MobEffectInstance;
 
 import java.util.Collection;
@@ -84,8 +85,8 @@ public class hud_renderer {
 
         int maxCols = Math.max(1, (int) Math.floor((maxAllowedX - padding - displaySize) / iconStep) + 1);
 
-        double mouseX = mc.mouseHandler.xpos() * (double) screenWidth / (double) mc.getWindow().getScreenWidth();
-        double mouseY = mc.mouseHandler.ypos() * (double) screenHeight / (double) mc.getWindow().getScreenHeight();
+        double mouseX = mc.mouseHandler.getXVelocity() * (double) screenWidth / (double) mc.getWindow().getScreenWidth();
+        double mouseY = mc.mouseHandler.getYVelocity() * (double) screenHeight / (double) mc.getWindow().getScreenHeight();
 
         float scaledMouseX = (float) mouseX / renderScale;
         float scaledMouseY = (float) mouseY / renderScale;
@@ -95,22 +96,18 @@ public class hud_renderer {
         MobEffectInstance hoveredEffect = null;
 
         var poseStack = guiGraphics.pose();
-        poseStack.pushPose();
-        poseStack.scale(renderScale, renderScale, 1.0f);
+        poseStack.pushMatrix();
+        poseStack.scale(renderScale, renderScale);
 
         int col = 0;
         int row = 0;
-
-        guiGraphics.flush();
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
 
         for (MobEffectInstance effect : sortedEffects) {
             MoodleDef def = registry.getMoodleDef(effect);
 
             int frameIndex = 0;
             int foregroundIndex = 0;
-            ResourceLocation frameTex = texture_manager.ORIGINAL_LOCATION;
+            Identifier frameTex = texture_manager.ORIGINAL_LOCATION;
 
             if (displayMode == config.DisplayMode.CAS_UNKNOWN) {
                 switch (def.type()) {
@@ -176,45 +173,47 @@ public class hud_renderer {
                 wiggleOffset = (float) Math.sin((now % 1500L) / 1500.0 * Math.PI * 2.0) * 1.5f;
             }
 
-            poseStack.pushPose();
+            poseStack.pushMatrix();
 
             float centerX = x + displaySize / 2.0f;
             float centerY = y + displaySize / 2.0f;
-            poseStack.translate(centerX, centerY + anim.yOffset() + wiggleOffset, 0.0f);
-            poseStack.scale(anim.scale(), anim.scale(), 1.0f);
-            poseStack.translate(-centerX, -centerY, 0.0f);
+            poseStack.translate(centerX, centerY + anim.yOffset() + wiggleOffset);
+            poseStack.scale(anim.scale(), anim.scale());
+            poseStack.translate(-centerX, -centerY);
 
-            guiGraphics.setColor(1.0f, 1.0f, 1.0f, anim.alpha());
+            int color = ARGB.colorFromFloat(anim.alpha(), 1.0f, 1.0f, 1.0f);
 
             guiGraphics.blit(
+                    RenderPipelines.GUI_TEXTURED,
                     frameTex,
                     x, y,
-                    displaySize, displaySize,
                     (float) (frameIndex * SLOT_SIZE), 0.0f,
-                    SLOT_SIZE, SLOT_SIZE,
-                    texWidth, texHeight
+                    displaySize, displaySize,
+                    texWidth, texHeight,
+                    color
             );
 
             guiGraphics.blit(
+                    RenderPipelines.GUI_TEXTURED,
                     texture_manager.OUTLINED_ICONS_LOCATION,
                     x, y,
-                    displaySize, displaySize,
                     (float) (def.iconIndex() * SLOT_SIZE), 0.0f,
-                    SLOT_SIZE, SLOT_SIZE,
-                    texWidth, texHeight
+                    displaySize, displaySize,
+                    texWidth, texHeight,
+                    color
             );
 
             guiGraphics.blit(
+                    RenderPipelines.GUI_TEXTURED,
                     frameTex,
                     x, y,
-                    displaySize, displaySize,
                     (float) (foregroundIndex * SLOT_SIZE), 0.0f,
-                    SLOT_SIZE, SLOT_SIZE,
-                    texWidth, texHeight
+                    displaySize, displaySize,
+                    texWidth, texHeight,
+                    color
             );
 
-            guiGraphics.setColor(1.0f, 1.0f, 1.0f, 1.0f);
-            poseStack.popPose();
+            poseStack.popMatrix();
 
             overlay.renderOverlay(guiGraphics, effect, def, x, y, displaySize, now);
 
@@ -225,10 +224,7 @@ public class hud_renderer {
             }
         }
 
-        guiGraphics.flush();
-        RenderSystem.disableBlend();
-
-        poseStack.popPose();
+        poseStack.popMatrix();
 
         if (hoveredEffect != null) {
             tooltip.render(guiGraphics, hoveredEffect, (int) mouseX, (int) mouseY, mc.font);

@@ -3,7 +3,7 @@ package com.moodles;
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import org.jetbrains.annotations.NotNull;
@@ -11,10 +11,10 @@ import org.jetbrains.annotations.NotNull;
 import java.io.InputStream;
 
 public class texture_manager implements ResourceManagerReloadListener {
-    public static final ResourceLocation ORIGINAL_LOCATION = ResourceLocation.fromNamespaceAndPath(moodles.MODID, "gui/moodle.png");
-    public static final ResourceLocation OUTLINED_ICONS_LOCATION = ResourceLocation.fromNamespaceAndPath(moodles.MODID, "gui/moodle_outlined.png");
-    public static final ResourceLocation HUE_SHIFTED_90_LOCATION = ResourceLocation.fromNamespaceAndPath(moodles.MODID, "gui/moodle_hue_90.png");
-    public static final ResourceLocation HUE_SHIFTED_40_LOCATION = ResourceLocation.fromNamespaceAndPath(moodles.MODID, "gui/moodle_hue_40.png");
+    public static final Identifier ORIGINAL_LOCATION = Identifier.fromNamespaceAndPath(moodles.MODID, "gui/moodle.png");
+    public static final Identifier OUTLINED_ICONS_LOCATION = Identifier.fromNamespaceAndPath(moodles.MODID, "gui/moodle_outlined.png");
+    public static final Identifier HUE_SHIFTED_90_LOCATION = Identifier.fromNamespaceAndPath(moodles.MODID, "gui/moodle_hue_90.png");
+    public static final Identifier HUE_SHIFTED_40_LOCATION = Identifier.fromNamespaceAndPath(moodles.MODID, "gui/moodle_hue_40.png");
 
     private static final int SLOT_SIZE = 22;
     private static final int ICON_SLOT_COUNT = 38;
@@ -39,13 +39,13 @@ public class texture_manager implements ResourceManagerReloadListener {
     }
 
     private static synchronized void loadTextures(ResourceManager resourceManager, Minecraft mc) {
-        ResourceLocation[] possiblePaths = new ResourceLocation[]{
-                ResourceLocation.fromNamespaceAndPath(moodles.MODID, "gui/moodle.png"),
-                ResourceLocation.fromNamespaceAndPath(moodles.MODID, "textures/gui/moodle.png")
+        Identifier[] possiblePaths = new Identifier[]{
+                Identifier.fromNamespaceAndPath(moodles.MODID, "gui/moodle.png"),
+                Identifier.fromNamespaceAndPath(moodles.MODID, "textures/gui/moodle.png")
         };
 
         InputStream inputStream = null;
-        for (ResourceLocation loc : possiblePaths) {
+        for (Identifier loc : possiblePaths) {
             var resourceOpt = resourceManager.getResource(loc);
             if (resourceOpt.isPresent()) {
                 try {
@@ -57,8 +57,8 @@ public class texture_manager implements ResourceManagerReloadListener {
 
         if (inputStream == null) return;
 
-        try (InputStream stream = inputStream;
-             NativeImage original = NativeImage.read(stream)) {
+        try (InputStream stream = inputStream) {
+            NativeImage original = NativeImage.read(stream);
 
             textureWidth = original.getWidth();
             textureHeight = original.getHeight();
@@ -69,19 +69,19 @@ public class texture_manager implements ResourceManagerReloadListener {
 
             for (int y = 0; y < textureHeight; y++) {
                 for (int x = 0; x < textureWidth; x++) {
-                    int pixelABGR = original.getPixelRGBA(x, y);
-                    hueShifted90.setPixelRGBA(x, y, shiftHueABGR(pixelABGR, 90.0f));
-                    hueShifted40.setPixelRGBA(x, y, shiftHueABGR(pixelABGR, 40.0f));
-                    outlinedImg.setPixelRGBA(x, y, pixelABGR);
+                    int pixelABGR = original.getPixel(x, y);
+                    hueShifted90.setPixel(x, y, shiftHueABGR(pixelABGR, -90.0f));
+                    hueShifted40.setPixel(x, y, shiftHueABGR(pixelABGR, -40.0f));
+                    outlinedImg.setPixel(x, y, pixelABGR);
                 }
             }
 
             generateIconOutlines(original, outlinedImg, 1);
 
-            mc.getTextureManager().register(HUE_SHIFTED_90_LOCATION, new DynamicTexture(hueShifted90));
-            mc.getTextureManager().register(HUE_SHIFTED_40_LOCATION, new DynamicTexture(hueShifted40));
-            mc.getTextureManager().register(OUTLINED_ICONS_LOCATION, new DynamicTexture(outlinedImg));
-            mc.getTextureManager().register(ORIGINAL_LOCATION, new DynamicTexture(original));
+            mc.getTextureManager().register(HUE_SHIFTED_90_LOCATION, new DynamicTexture(() -> "moodle_hue_90", hueShifted90));
+            mc.getTextureManager().register(HUE_SHIFTED_40_LOCATION, new DynamicTexture(() -> "moodle_hue_40", hueShifted40));
+            mc.getTextureManager().register(OUTLINED_ICONS_LOCATION, new DynamicTexture(() -> "moodle_outlined", outlinedImg));
+            mc.getTextureManager().register(ORIGINAL_LOCATION, new DynamicTexture(() -> "moodle_original", original));
 
             loaded = true;
         } catch (Exception ignored) {
@@ -97,7 +97,7 @@ public class texture_manager implements ResourceManagerReloadListener {
 
             for (int y = 0; y < SLOT_SIZE; y++) {
                 for (int x = startX; x < endX; x++) {
-                    int currentABGR = src.getPixelRGBA(x, y);
+                    int currentABGR = src.getPixel(x, y);
                     int currentAlpha = (currentABGR >> 24) & 0xFF;
 
                     if (currentAlpha < 30) {
@@ -112,7 +112,7 @@ public class texture_manager implements ResourceManagerReloadListener {
                                 int ny = y + dy;
 
                                 if (nx >= startX && nx < endX && ny >= 0 && ny < SLOT_SIZE) {
-                                    int neighborABGR = src.getPixelRGBA(nx, ny);
+                                    int neighborABGR = src.getPixel(nx, ny);
                                     int neighborAlpha = (neighborABGR >> 24) & 0xFF;
 
                                     if (neighborAlpha > 100 && neighborAlpha > maxNeighborAlpha) {
@@ -125,7 +125,7 @@ public class texture_manager implements ResourceManagerReloadListener {
 
                         if (maxNeighborAlpha > 0) {
                             int outlineABGR = createOutlinePixel(bestNeighborABGR);
-                            dest.setPixelRGBA(x, y, outlineABGR);
+                            dest.setPixel(x, y, outlineABGR);
                         }
                     }
                 }
@@ -244,7 +244,6 @@ public class texture_manager implements ResourceManagerReloadListener {
         int rOut = Math.round((rNew + m) * 255.0f);
         int gOut = Math.round((gNew + m) * 255.0f);
         int bOut = Math.round((bNew + m) * 255.0f);
-
 
         return (a << 24) | (bOut << 16) | (gOut << 8) | rOut;
     }

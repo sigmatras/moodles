@@ -1,10 +1,11 @@
 package com.moodles;
 
 import com.moodles.registry.EffectType;
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.core.Holder;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.ARGB;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 
@@ -13,7 +14,7 @@ import java.util.Map;
 
 public class overlay {
 
-    public static final ResourceLocation OVERLAY_LOCATION = ResourceLocation.fromNamespaceAndPath(moodles.MODID, "textures/gui/moodle_overlay.png");
+    public static final Identifier OVERLAY_LOCATION = Identifier.fromNamespaceAndPath(moodles.MODID, "textures/gui/moodle_overlay.png");
 
     private static final int TEX_WIDTH = 22;
     private static final int TEX_HEIGHT = 48;
@@ -55,19 +56,17 @@ public class overlay {
         float vOffset = (1.0f - appearFactor) * TEX_HEIGHT;
         int vHeight = Math.max(1, Math.round(appearFactor * TEX_HEIGHT));
 
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-
-        guiGraphics.setColor(1.0f, 1.0f, 1.0f, alpha);
+        int color = ARGB.colorFromFloat(alpha, 1.0f, 1.0f, 1.0f);
         guiGraphics.blit(
+                RenderPipelines.GUI_TEXTURED,
                 OVERLAY_LOCATION,
                 renderX, renderY,
-                renderWidth, currentHeight,
                 0.0f, vOffset,
+                renderWidth, currentHeight,
                 TEX_WIDTH, vHeight,
-                TEX_WIDTH, TEX_HEIGHT
+                TEX_WIDTH, TEX_HEIGHT,
+                color
         );
-        guiGraphics.setColor(1.0f, 1.0f, 1.0f, 1.0f);
     }
 
     private static double easeExpoOut(double x) {

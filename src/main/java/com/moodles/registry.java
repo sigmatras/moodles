@@ -1,7 +1,7 @@
 package com.moodles;
 
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
 
@@ -18,7 +18,7 @@ public class registry {
 
     public record MoodleDef(int iconIndex, boolean scalesWithPotency, EffectType type) {}
 
-    private static final Map<ResourceLocation, MoodleDef> REGISTRY = new HashMap<>();
+    private static final Map<Identifier, MoodleDef> REGISTRY = new HashMap<>();
 
     static {
         register("absorption", 0, true, EffectType.POSITIVE);
@@ -64,12 +64,12 @@ public class registry {
     }
 
     private static void register(String path, int iconIndex, boolean scalesWithPotency, EffectType type) {
-        REGISTRY.put(ResourceLocation.fromNamespaceAndPath("minecraft", path),
+        REGISTRY.put(Identifier.fromNamespaceAndPath("minecraft", path),
                 new MoodleDef(iconIndex, scalesWithPotency, type));
     }
 
     public static MoodleDef getMoodleDef(MobEffectInstance instance) {
-        ResourceLocation key = instance.getEffect().unwrapKey().map(ResourceKey::location).orElse(null);
+        Identifier key = instance.getEffect().unwrapKey().map(ResourceKey::identifier).orElse(null);
         if (key != null && REGISTRY.containsKey(key)) {
             return REGISTRY.get(key);
         }

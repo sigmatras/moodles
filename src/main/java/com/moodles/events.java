@@ -1,18 +1,15 @@
 package com.moodles;
 
 import net.minecraft.client.gui.screens.LevelLoadingScreen;
-import net.minecraft.client.gui.screens.ReceivingLevelScreen;
+import net.minecraft.client.gui.screens.ConnectScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.gui.screens.options.OptionsScreen;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
-import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
-import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
-import net.neoforged.neoforge.client.event.ScreenEvent;
+import net.neoforged.neoforge.client.event.*;
 import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 
 public class events {
@@ -24,16 +21,18 @@ public class events {
         public static void registerGuiLayers(RegisterGuiLayersEvent event) {
             event.registerAbove(
                     VanillaGuiLayers.HOTBAR,
-                    ResourceLocation.fromNamespaceAndPath(moodles.MODID, "hud"),
+                    Identifier.fromNamespaceAndPath(moodles.MODID, "hud"),
                     (guiGraphics, deltaTracker) -> hud_renderer.renderHud(guiGraphics)
             );
         }
 
         @SubscribeEvent
-        public static void registerReloadListeners(RegisterClientReloadListenersEvent event) {
-            event.registerReloadListener(new texture_manager());
+        public static void registerReloadListeners(AddClientReloadListenersEvent event) {
+            event.addListener(
+                    Identifier.fromNamespaceAndPath(moodles.MODID, "texture_manager"),
+                    new texture_manager()
+            );
         }
-    }
 
     @EventBusSubscriber(modid = moodles.MODID, value = Dist.CLIENT)
     public static class GameBusEvents {
@@ -62,8 +61,8 @@ public class events {
             return screen.isPauseScreen()
                     || screen instanceof TitleScreen
                     || screen instanceof OptionsScreen
-                    || screen instanceof LevelLoadingScreen
-                    || screen instanceof ReceivingLevelScreen;
-        }
+                    || screen instanceof ConnectScreen
+                    || screen instanceof LevelLoadingScreen;
+        }}
     }
 }

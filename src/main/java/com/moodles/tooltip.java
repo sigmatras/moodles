@@ -89,15 +89,14 @@ public class tooltip {
         }
 
         var poseStack = guiGraphics.pose();
-        poseStack.pushPose();
-        poseStack.translate(0, 0, 400);
+        poseStack.pushMatrix();
 
         float anchorX = x;
         float anchorY = y + tooltipHeight;
 
-        poseStack.translate(anchorX, anchorY, 0.0f);
-        poseStack.scale(scale, scale, 1.0f);
-        poseStack.translate(-anchorX, -anchorY, 0.0f);
+        poseStack.translate(anchorX, anchorY);
+        poseStack.scale(scale, scale);
+        poseStack.translate(-anchorX, -anchorY);
 
         guiGraphics.fill(x, y, x + tooltipWidth, y + tooltipHeight, 0xE1000000);
 
@@ -112,7 +111,7 @@ public class tooltip {
             descY += font.lineHeight;
         }
 
-        poseStack.popPose();
+        poseStack.popMatrix();
     }
 
     private static double easeExpoOut(double x) {
